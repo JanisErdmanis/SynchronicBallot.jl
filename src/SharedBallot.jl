@@ -9,9 +9,9 @@ using Serialization
 # using TOR
 # using SecureIO
 
-include("messages.jl")
-include("server.jl")
-include("user.jl")
-include("maintainer.jl")
+# include("messages.jl")
+# include("server.jl")
+# include("user.jl")
+# include("maintainer.jl")
 
 end 
