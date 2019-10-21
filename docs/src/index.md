@@ -6,12 +6,12 @@ One of the ways to have the anonymous public key burned in the card by the Vendo
 
 The second way is by starting with an elligible person public keys and use them to register anonymous public keys. The procedure for registrating a unique message:
 
-(1) The potential member establishes a secure connection with the keyserver. Keyserver checks that user public key is elligible. User checks that he had connected the right server. 
-(2) The keyserver generates and sends to the user a blockkey at the moment when N elligible members had reached this stage to make a block full. 
-(3) User uses TOR or other ip anonymizer and estblishes the anonymous connection with keyserver which he secures with blockkey. That acts as verification of the server that the right person had contacted him.
-(4) User sends his unique message in a random time withn the interval which was specified in the blockey. He waits until delivery time had ended and closes the secure connection.
-(5) The block is constructed by the server and sent over the secure connection to each user.
-(6) The user checks if his unique message is in the block and sends back a user signature of the block to the server.
+1. The potential member establishes a secure connection with the keyserver. Keyserver checks that user public key is elligible. User checks that he had connected the right server. 
+2. The keyserver generates and sends to the user a blockkey at the moment when N elligible members had reached this stage to make a block full. 
+3. User uses TOR or other ip anonymizer and estblishes the anonymous connection with keyserver which he secures with blockkey. That acts as verification of the server that the right person had contacted him.
+4. User sends his unique message in a random time withn the interval which was specified in the blockey. He waits until delivery time had ended and closes the secure connection.
+5. The block is constructed by the server and sent over the secure connection to each user.
+6. The user checks if his unique message is in the block and sends back a user signature of the block to the server.
 
 To use it for PeaceVote mobile system we use user generated public key as a message. Then inthat wya an anonymous public key ledger can be obtained. Remearkably the procedure then can be repeated then with anonymous keys and that would produce a ledger with even higher anonymity!
 
