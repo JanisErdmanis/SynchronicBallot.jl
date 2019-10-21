@@ -1,0 +1,4 @@
+name = "KeyChain"
+uuid = "0c3b083d-145c-4e67-be7e-1de06eb67f21"
+authors = ["akels <akels14@gmail.com>"]
+version = "0.1.0"
