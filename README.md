@@ -1,2 +1,2 @@
-# KeyChain.jl
-A protocol for anonymous registration of public keys
+# SharedBallot.jl
+A protocol for anonymous and unique registration of messages
