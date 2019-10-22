@@ -5,24 +5,8 @@ struct BallotServer()
 end
 
 function registermessage(route::BallotServer,userkey,message)
-    clientside = connect(route)
-    s = Serializer(clientside)
-    s = Serialization.writeheader(s)
 
-    ### Diffie-Hofman key exchange
-
-    p,g = deserialize(s)
-    b = 7
-
-    serialize(s,Signature(mod(g^b,p),userkey))
-    A = deserialize(s)
-    
-    if !isvalid(A)
-        error("Server signature is incorrect")
-    end
-
-    key = mod(A^b,p)
-    eclientside = SecretIO(clientside,key)
+    eclientside = connect(route.ip,route.userport,route.pubkey,userkey)
     ss = Serializer(eclientside)
     Serializtion.writeheader(ss)
 
@@ -56,6 +40,8 @@ function registermessage(route::BallotServer,userkey,message)
     if !issucesfull(fullblock)
         error("The block did not succeed. Try again.")
     end
+    
+    close(ss)
 
     return fullblock
 end

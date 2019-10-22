@@ -3,92 +3,120 @@ struct BallotServerConfig
     userport
     keyport
     maintainerport
+    maintainerpubkey
     serverkey
+end
+
+function getanonymousmsg(server,ballotkey)
+    anonymousmsg = []
+
+    while deliverytime(ballotkey) # One could have a delay uppon the first time.
+        asocket = accept(msgserver)
+        secretsockett = SecretIO(asocket,ballotkey)
+        @async begin
+            msg = deserialize(secretsockett)
+            push!(anonymousmsg,msg)
+        end
+    end
 end
 
 function ballotserver(ks::BallotServerConfig,prevblockhash)
     userserver = listen(ks.userport)
     keyserver = listen(ks.keyport)
+    maintainerserver = listen(ks.maintainerport)
 
     usersockets = Channel(20)
 
-    @sync begin
-    
-        @async while true
-            socket = accept(server)
-            s = Serializer(socket)
-            Serialization.writeheader(s)
-            p,g = 23, 5
-            a = 8
-            @async begin
-                serialize(s,(p,q))
-                B = deserialize(s)
-                if !isvalid(B)
-                    close(socket)
-                else
-                    A = Signature(mod(g^a,p),ks.serverkey)
-                    serialize(s,A)
-                    key = mod(B^a,p)
+    userpubkeys = [] # A set probably is more appropriate
 
-                    secretsocket = SecretIO(socket,key)
+    @sync begin
+        
+        # The part which gets valid public keys from the maintainer
+        @async while true
+            socket = accept(maintainerserver)
+            @async begin
+                secretsocket = securesocket(socket, pubkey->pubkey==ks.maintainerpubkey, ks.serverkey)
+                
+                if iserror(secretsocket)
+                    println(secretsocket)
+                else
                     ss = Serializer(secretesocket)
                     Serializtion.writeheader(ss)
+
+                    # Now public key can be received
+                    while isopen(socket)
+                        pubkey = deserialize(ss) 
+                        push!(userpubkeys,pubkey)
+                    end
+                end
+            end
+        end
+    
+        # This part waits for all valid user sockets
+        @async while true
+            socket = accept(userserver)
+            
+            @async begin
+                (secretsocket, pubkey) = securesocket(socket, pubkey->pubkey in userpubkey, ks.serverkey)
+                remove!(userpubkeys,pubkey)
+                
+                if iserror(secretsocket)
+                    println(secretsocket)
+                else
+                    ss = Serializer(secretesocket)
+                    Serializtion.writeheader(ss)
+
                     put!(usersockets,ss)
                 end
             end
+        end
 
-            @async while true
-                acc = []
-                for i in 1:10
-                    push!(acc,take!(usersockets))
-                end
+        @async while true
+            acc = []
+            for i in 1:10
+                push!(acc,take!(usersockets))
+            end
 
-                blockkey = BlockKey()
+            ballotkey = BallotKey()
 
+            @sync for user in acc
+                @async serialize(user,ballotkey)
+            end
+
+            anonymousmsg = getanonymousmsg(msgserver,ballotkey)
+            
+            
+            if length(anonymousmsg)!=10
                 @sync for user in acc
-                    @async serialize(user,blockkey)
+                    @async serialize(user,Error("Number of anonymous messages received not equal to the block size"))
                 end
+            else
 
-                anonymouskeys = []
+                ballot = Ballot(ballotkey,anonymousmsg,prevballothash)
 
-                while deliverytime(blockey) # One could have a delay uppon the first time.
-                    asocket = accept(keyserver)
-                    secretsockett = SecretIO(asocket,blockkey)
+                userballotsignatures = []
+                @sync for user in acc
                     @async begin
-                        akey = deserialize(secretsockett)
-                        push!(anonymouskeys,akey)
+                        serialize(user,ballotkey)
+                        us = deserialize(user)
+                        push!(userballotsignatures,us)
                     end
                 end
-
-                if length(anonymouskeys)!=10
+                
+                if isvalid(userblocksignatures) && length(userblocksignatures)==10
+                    
+                    signedballot = SignedBallot(ks,ballot,userballotsignatures)
+                    
+                    save(signedballot)
+                    
                     @sync for user in acc
-                        @async serialize(user,Error("Number of anonymous public keys received not equal to the block size"))
-                    end
-                else
-
-                    block = Block(blockkey,anonymouskeys,prevblockhash)
-
-                    userblocksignatures = []
-                    @sync for user in acc
-                        @async begin
-                            serialize(user,blockkey)
-                            us = deserialize(user)
-                            push!(usersignatures,us)
-                        end
+                        @async serialize(user,signedballot)
                     end
                     
-                    if isvalid(userblocksignatures) && length(userblocksignatures)==10
-                        save(ks,block,userblocksignatures)
-                        
-                        @sync for user in acc
-                            @async serialize(user,Success())
-                        end
-                        
-                        prevblockhash = hash(block)
-                    else
-                        @sync for user in acc
-                            @async serialize(user,Error("Block signatures were not valid"))
-                        end
+                    prevblockhash = hash(signedballot)
+                else
+                    @sync for user in acc
+                        @async serialize(user,Error("Block signatures were not valid"))
                     end
                 end
             end

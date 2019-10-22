@@ -11,20 +11,26 @@ struct Signature
 end
 
 # The server gives to the memebers a block key
-struct BlockKey <: ServerMessage
-    blockkey
+struct BallotKey <: ServerMessage
+    ballotkey
     tbegin
     tend
 end
 
 ### Public key type is defined by cryptolibrary
 
-struct Block <: ServerMessage
+struct Ballot <: ServerMessage
     block
 end
 
-struct BlockSignature <: UserMessage
+struct BallotSignature <: UserMessage
     hash
     signature
     userpbkey
 end
+
+struct SignedBallot <: UserMessage
+    ballot
+    ballotsignatures
+end
+
