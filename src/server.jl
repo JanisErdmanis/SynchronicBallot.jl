@@ -1,11 +1,13 @@
 struct BallotServerConfig
     blocksize
     userport
-    keyport
+    msgport
     maintainerport
     maintainerpubkey
     serverkey
 end
+
+iserror(a) = typeof(a)==ErrorException
 
 function getanonymousmsg(ballotkey,ks)
     keyserver = listen(ks.keyport)
@@ -22,7 +24,7 @@ function getanonymousmsg(ballotkey,ks)
     end
     
     if length(anonymousmsg)!=10
-        return Error("Number of anonymous messages received not equal to the block size")
+        return ErrorException("Number of anonymous messages received not equal to the block size")
     else
         return anonymousmsg
     end
@@ -109,7 +111,7 @@ function getballotsignatures(ballot,users)
     if isvalid(userblocksignatures) && length(userblocksignatures)==10
         return userballotsignatures
     else
-        return Error("Signatures are not valid")
+        return ErrorException("Signatures are not valid")
     end
 end
 

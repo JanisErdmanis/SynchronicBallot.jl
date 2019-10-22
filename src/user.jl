@@ -1,7 +1,8 @@
-struct BallotServer()
+struct BallotServer
     ip
     userport
-    keyport
+    msgport
+    maintainerport
 end
 
 function registermessage(route::BallotServer,userkey,message)
