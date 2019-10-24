@@ -10,7 +10,11 @@ end
 iserror(a) = typeof(a)==ErrorException
 
 function getanonymousmsg(ballotkey,ks)
-    keyserver = listen(ks.keyport)
+    
+    # One should open the msgserver only for a specific time window and then keep the port closed. On the other hand when one executes accept he would get many unintended messages.
+    
+    wait(ballotkey)
+    msgserver = listen(ks.keyport)
 
     anonymousmsg = []
 
@@ -23,6 +27,8 @@ function getanonymousmsg(ballotkey,ks)
         end
     end
     
+    close(msgserver)
+
     if length(anonymousmsg)!=10
         return ErrorException("Number of anonymous messages received not equal to the block size")
     else

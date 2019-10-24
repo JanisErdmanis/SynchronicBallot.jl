@@ -5,7 +5,7 @@ struct BallotServer
     maintainerport
 end
 
-function registermessage(route::BallotServer,userkey,message)
+function vote(route::BallotServer,userkey,message)
 
     eclientside = connect(route.ip,route.userport,route.pubkey,userkey)
     ss = Serializer(eclientside)
@@ -13,9 +13,10 @@ function registermessage(route::BallotServer,userkey,message)
 
     blockkey = deserialize(ss)
 
-    #aprivkey, apublickey = generatekeypair()
     
     # Now the crucial part of sending apublickey anonymously
+    wait(blockkey) # To avoid timing analysis of the network
+
     tor = TOR()
     aclientside = connect(tor,route.ip,route.keyport)
     eaclientside = SecretIO(aclientside,blockkey)
@@ -23,7 +24,6 @@ function registermessage(route::BallotServer,userkey,message)
     sss = Serializer(eaclientside)
     sss = Serialization.writeheader(sss)
     
-    waitrandom(blockkey)
     serialize(sss,apublickey)
     waitrest(blockkey)
     close(tor)

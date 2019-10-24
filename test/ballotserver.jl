@@ -2,46 +2,41 @@ using SharedBallot
 
 # Maintainer key pair
 
-mprivkey, mpubkey = generate(...)
+mkey, mpubkey = generatekeypair()
 
 # Setting up the server
 
-serverkey, serverpubkey = generate(...)
+skey, spubkey = generatekeypair()
 
-ks = BlockServerConfig(10,2000,2001,2002,mpubkey,serverkey)
-blockserver(ks,0000)
+bsc = BallotServerConfig(10,2000,2001,2002,mpubkey,Server(skey,spubkey))
+blockserver(bsc,0000)
 
 # Let's now generate users
 
 users = []
 
 for i in 1:15
-    pirv,pub = generate(...)
+    pirv,pub = generatekeypair()
     push!(users,(priv,pub))
 end
 
 # Users send their public keys to maintainer for joining the group. Thus maintainer has a list of public keys. he sends them to the keyserver.
 userspub = [u[2] for u in users]
 
-m = Maintainer(mprivkey,mpubkey)
-s = KeyServer(0.0.0.0,2000,2001,2002,serverpubkey)
-socket = connect(s,m)
+m = Maintainer(mkey,mpubkey)
+s = KeyServer(0.0.0.0,2000,2001,2002,spubkey)
+socket = connect(s,m) ### 
 
 for u in userpub
-    serialize(socket,UserKey(u))
+    serialize(socket,u)
 end
 
 # Now the users asks for anonymous keys individually
 
 for user in users
     @async begin
-        s = KeyServer(0.0.0.0,2000,2001,2002,serverpubkey)
-        u = User(user...)
-        #akey = getanonymouskey(s,u)
-        block = sendblockmessage(s,u,msg)
-        # In the bloc there are entries and one can verify that his message is there
-        
-        # Now each user can make an anonymous signature
+        s = BallotServer(0.0.0.0,2000,2001,2002,spubkey)
+        fullballot = vote(s,User(user),msg)
     end
 end
 
