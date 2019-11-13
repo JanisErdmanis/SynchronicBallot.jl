@@ -36,35 +36,6 @@ function getanonymousmsg(ballotkey,ks)
     end
 end
 
-function maintainerserver!(userpubkeys,signedballots,ks)
-    maintainerserver = listen(ks.maintainerport)
-
-    while true
-        socket = accept(maintainerserver)
-        @async begin
-            secretsocket = securesocket(socket, pubkey->pubkey==ks.maintainerpubkey, ks.serverkey)
-            
-            if iserror(secretsocket)
-                println(secretsocket)
-                continue
-            end
-
-            ss = Serializer(secretesocket)
-            Serializtion.writeheader(ss)
-
-            # Now public key can be received
-            @async while isopen(secretsocket)
-                pubkey = deserialize(ss) 
-                put!(userpubkeys,pubkey)
-            end
-            
-            @async while isopen(secretsocket)
-                sb = take!(signedballots)
-                serialize(ss,sb)
-            end
-        end
-    end
-end
 
 function userserver!(usersockets,userpbkeys,ks)
     # Now I need to take out thoose keys into a set

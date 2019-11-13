@@ -2,3 +2,7 @@ name = "SharedBallot"
 uuid = "c4fd2470-c9f5-491f-b4e2-53b9059945a5"
 authors = ["akels <akels14@gmail.com>"]
 version = "0.1.0"
+
+[deps]
+CryptoGroups = "bc997328-bedd-407e-bcd3-5758e064a52d"
+CryptoSignatures = "35cc5888-0c46-470e-89c7-eafcaf79a1aa"

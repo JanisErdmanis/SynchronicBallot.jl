@@ -1,52 +1,88 @@
-using SharedBallot
-using Serializer
+#using SharedBallot
 
+using DiffieHellman
+using CryptoGroups
+using CryptoSignatures
+
+#using SecureIO
+using Sockets
 ### So first we have a maintainer
 
-mkey,mpubkey = generatekeypair()
+# G = CryptoGroups.MODP160Group()
 
-### The maintainer sets up a server
+# maintainer = Signer(G)
+# maintainerid = hash(maintainer.pubkey)
 
-skey,spubkey = generatekeypair()
-bsc = BallotServerConfig(nothing,nothing,nothing,2002,mpubkey,skey)
+# ### The communication 
+# server = listen(2000)
 
-userpubkeys = Channel(20)
-signedballots = Channel(20)
+# @sync begin
+#     @async global serversocket = accept(server)
+#     global maintainersocket = connect(2000)
+# end
 
-@async maintainerserver!(userpubkeys,signedballots,bsc)
+# @info "The maintainter sets up the server"
 
-### Now the maintainer establishes a connection with the server
-
-socket = coonect("0.0.0.0",2002,pubkey->pubkey==spubkey,mkey)
-
-s = Serializer(socket)
-s = Serialization.writeheader(s)
-
-for i in 1:15
-    pirv,pub = generate(...)
-    serialize(s,pub)
-end
-
-### Let's now see from the server if that was succesful
-
-for pubkey in userpubkeys
-    @show pubkey
-end
-
-@info "Now let's test maintainer can receive signedballots"
-
-### The server does
-
-ballotkey = BallotKey()
-ballot = Ballot(ballotkey,["hello","ddsd","ddff"],0)
-sb = SignedBallot(bsc,ballot,[0,1,2])
-
-put!(signedballots,sb)
-
-### The maintainer now can get stuff back
-
-@show deserialize(s)
+# server = Signer(G)
+# serverid = hash(server.pubkey)
 
 
 
+# serversign(data) = DSASignature(hash(data),server)
+# verifymaintainer(d,s) = verify(d,s,G) # && hash(s.pubkey)==maintainerid
 
+# @async keyserver = diffie(serversocket,serversign,(d,s)->verify(d,s,G),G)
+
+# slave = Signer(G)
+# slavesign(data) = DSASignature(hash(data),slave)
+# keyslave = hellman(maintainersocket,slavesign,(d,s)->verify(d,s,G)) # x==serverid
+
+# @show keyserver
+
+# # @async keyserver = diffie(serversocket,serversign,verifymaintainer,G)
+# #@async begin 
+#     # keyserver = diffie(serversocket,serversign,verifymaintainer,G)
+#     # @show keyserver
+#     # secureserversocket = SecureTunnel(serversocket,keyserver)
+#     # maintainercom(secureserversocket,userpubkeys,routers,signedballots,logch)
+# #end
+
+# #sleep(1)
+
+# #
+
+# # maintainersign(data) = DSASignature(hash(data),maintainer)
+
+# # key = hellman(maintainersocket,maintainersign,verifyserver)
+
+
+# # Instead of some shady User type one could send in a signatures
+# # On the other hand that should be done with the maintainer
+
+# for i in 1:15
+#     user = Signer(G)
+#     approveduser = User(user.pubkey,G)
+#     serialize(securesocket,approveduser)
+# end
+
+# ### Let's now see from the server if that was succesful
+
+# for pubkey in userpubkeys
+#     @show pubkey
+# end
+
+# @info "Now let's test maintainer can receive signedballots"
+
+# ### The server does
+
+# ballotkey = BallotKey(0,0)
+# ballot = Ballot(ballotkey,["hello","world","here"])
+
+# usersignatures = [1,2,3]
+# sb = SignedBallot(ballot,usersignatures)
+
+# put!(signedballots,sb)
+
+# ### The maintainer now can get stuff back
+
+# @show deserialize(securesocket)
