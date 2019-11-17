@@ -1,138 +1,55 @@
-struct BallotServerConfig
-    blocksize
-    userport
-    msgport
-    maintainerport
-    maintainerpubkey
-    serverkey
-end
+function server(servers,routerport,routerid,userids,sign,verify,G)
+    @show "Server"
+    routersocket = connect(routerport)
+    key = hellman(routersocket,sign,verify)
+    secureroutersocket = SecureTunnel(routersocket,key)
 
-iserror(a) = typeof(a)==ErrorException
+    serialize(secureroutersocket,"Securelly from the server")
+    ### Now let's do Diffie-Hellman procedure with permitted users
 
-function getanonymousmsg(ballotkey,ks)
+    usersockets = IO[]
+
+    while length(usersockets)<3
+        usersocket = accept(servers)
+        ### Could be asyhnced. 
+        key = diffie(usersocket,sign,verify,G)
+        secureusersocket = SecureTunnel(usersocket,key)
+        push!(usersockets,secureusersocket)
+    end
+
+    serialize(usersockets[1],"Hello")
+#    serialize(usersockets[1],"Hello")
+
+    serialize(usersockets[2],"World")
+#    serialize(usersockets[2],G)
+
+    serialize(usersockets[3],"Third user")
+
+    #text = "On 14 October 1939, Royal Oak was anchored at Scapa Flow in Orkney, Scotland, when she was torpedoed by the German submarine U-47. Of Royal Oak's complement of 1,234 men and boys, 835 were killed that night or died later of their wounds. The loss of the outdated ship—the first of five Royal Navy battleships and battlecruisers sunk in the Second World War—did little to affect the numerical superiority enjoyed by the British navy and its Allies, but the sinking had a considerable effect on wartime morale. The raid made an immediate celebrity and war hero out of the U-boat commander, Günther Prien, who became the first German submarine officer to be awarded the Knight's Cross of the Iron Cross. Before the sinking of Royal Oak, the Royal Navy had considered the naval base at Scapa Flow impregnable to submarine attack, but U-47's raid demonstrated that the German navy was capable of bringing the war to British home waters. The shock resulted in rapid changes to dockland security and the construction of the Churchill Barriers around Scapa Flow."
+
+    #serialize(usersockets[3],"A new message")
+    # serialize(usersockets[3],text)
+    #serialize(usersockets[2],G)
     
-    # One should open the msgserver only for a specific time window and then keep the port closed. On the other hand when one executes accept he would get many unintended messages.
+    # serialize(usersockets[1],text)
+    # serialize(usersockets[2],text)
+    # serialize(usersockets[3],text)
+
+    # serialize(usersockets[1],G)
+    # serialize(usersockets[2],G)
+    # serialize(usersockets[3],G)
+
+
+    ### Let's say if I wanted to redirect messages of User 1 how would I do that?
+    # For a single excahnge that would look something as follows:
     
-    wait(ballotkey)
-    msgserver = listen(ks.keyport)
 
-    anonymousmsg = []
+    # I could test this by deserialzizing what comes out of the routersocket
 
-    while deliverytime(ballotkey) # One could have a delay uppon the first time.
-        asocket = accept(msgserver)
-        secretsockett = SecretIO(asocket,ballotkey)
-        @async begin
-            msg = deserialize(secretsockett)
-            push!(anonymousmsg,msg)
-        end
-    end
+    #@show deserialize(secureroutersocket)
+    route(usersockets,secureroutersocket)
     
-    close(msgserver)
-
-    if length(anonymousmsg)!=10
-        return ErrorException("Number of anonymous messages received not equal to the block size")
-    else
-        return anonymousmsg
-    end
-end
-
-
-function userserver!(usersockets,userpbkeys,ks)
-    # Now I need to take out thoose keys into a set
-    userserver = listen(ks.userport)
-
-    while true
-        socket = accept(userserver)
-        
-        @async begin
-            (secretsocket, pubkey) = securesocket(socket, pubkey->pubkey in userpubkey, ks.serverkey)
-            remove!(userpubkeys,pubkey)
-            
-            if iserror(secretsocket)
-                println(secretsocket)
-            else
-                ss = Serializer(secretesocket)
-                Serializtion.writeheader(ss)
-
-                put!(usersockets,ss)
-            end
-        end
-    end
-end
-
-function taken!(channel::AbstractChannel,n)
-    acc = []
-    for i in 1:n
-        push!(acc,take!(channel))
-    end
-    
-    return acc
-end
-
-function sendtoall(sockets,msg)
-    @sync for user in sockets
-        @async serialize(user,msg)
-    end
-end
-
-function getballotsignatures(ballot,users)
-    userballotsignatures = []
-    @sync for user in users
-        @async begin
-            serialize(user,ballot)
-            us = deserialize(user)
-            push!(userballotsignatures,us)
-        end
-    end
-
-    if isvalid(userblocksignatures) && length(userblocksignatures)==10
-        return userballotsignatures
-    else
-        return ErrorException("Signatures are not valid")
-    end
-end
-
-function ballotserver(ks::BallotServerConfig,prevblockhash)
-    
-    signedballots = Channel(20)
-    usersockets = Channel(20)
-    userpubkeys = Channel(20) # A set probably is more appropriate
-
-    @sync begin
-        
-        # The part which gets valid public keys from the maintainer
-        @async maintainerserver!(userpubkeys,signedballots,ks)
-    
-        # This part waits  for all valid user sockets
-        @async userserver!(usersockets,userpbkeys,ks)
-        
-        @async while true
-            users = taken!(usersockets,10)
-            ballotkey = BallotKey()
-            sendtoall(users,ballotkey)
-
-            anonymousmsg = getanonymousmsg(ballotkey,ks)
-            
-            
-            if iserror(anonymousmsg)
-                sendtoall(users,anonymousmsg)
-                continue
-            end
-
-            ballot = Ballot(ballotkey,anonymousmsg,prevballothash)
-            
-            ballotsignatures = getballotsignatures(ballot,users)
-            
-            if iserror(ballotsignatures)
-                sendtoall(users,ballotsignatures)
-                continue
-            end
-
-            signedballot = SignedBallot(ks,ballot,ballotsignatures)
-
-            put!(signedballots,signedballot)
-            sendtoall(users,signedballot)
-            prevblockhash = hash(signedballot)
-        end
-    end
+    # for i in 1:3
+    #     @show deserialize(usersockets[1])
+    # end
 end

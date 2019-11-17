@@ -1,73 +1,60 @@
-#using Tests
-# Lets run DiffieHellman over network
+#include("maintainercom.jl")
+#include("usercom.jl")
+
+# I need to test that user can establish connection with server and also with router
+# A spetial type for forwarded messages is necessary to easally establish conection through the server with the router
+# I need multiplexer and demultiplexer to deal with multiple user connections. 
+# So first let's forget about security and let's focus on forwarding. 
+# If the same packets flow from User to Server as from user to Router then ISP sees who is connected to the router. 
+# The connection however needs to go through the Server to see integrity of the system, to prevent Router being expossed to DDOS attacks. 
 
 using SharedBallot
-
-using DiffieHellman
+using Sockets
 using CryptoGroups
 using CryptoSignatures
-using SecureIO
 
-using Sockets
-
+### For simplicity we assume the same group to be ussed everywhere. 
 G = CryptoGroups.MODP160Group()
+signdata(data,signer) = DSASignature(hash("$data"),signer)
+verifydata(data,signature) = verify(signature,G) && signature.hash==hash("$data")
 
-# Server
-server = Signer(G)
-serversign(data) = DSASignature(hash(data),server)
-serverid = hash(server.pubkey)
+routerkey = Signer(G)
+serverkey = Signer(G)
 
-# Maintainer
-slave = Signer(G)
-slavesign(data) = DSASignature(hash(data),slave)
-maintainerid = hash(slave.pubkey)
+### Testing signatures
+# data = (2324234234,"Hello World")
+# signature = signdata(data,routerkey)
+# @show verifydata(data,signature)
+###
 
-### Let's assume that maintainer had contacted the server
+userids = Set()
+
+user1key = Signer(G)
+user2key = Signer(G)
+user3key = Signer(G)
+
+push!(userids,hash(user1key.pubkey))
+push!(userids,hash(user2key.pubkey))
+push!(userids,hash(user3key.pubkey))
 
 @sync begin
-    server = listen(2000)
-    @async global serversocket = accept(server)
-    global slavesocket = connect(2000)
+    @async begin
+        routers = listen(2001)
+        try
+            router(routers,hash(serverkey.pubkey),data->signdata(data,routerkey),verifydata,G)
+        finally
+            close(routers)
+        end
+    end
+    @async begin
+        servers = listen(2000)
+        try 
+            server(servers,2001,hash(routerkey.pubkey),userids,data->signdata(data,serverkey),verifydata,G)
+        finally
+            close(servers)
+        end
+    end
+    @async user(2000,hash(serverkey.pubkey),hash(routerkey.pubkey),data->signdata(data,user1key),verifydata)
+    @async user(2000,hash(serverkey.pubkey),hash(routerkey.pubkey),data->signdata(data,user2key),verifydata)
+    @async user(2000,hash(serverkey.pubkey),hash(routerkey.pubkey),data->signdata(data,user3key),verifydata)
 end
-
-# Server
-
-userpubkeys = Channel(20)
-routers = Channel(20)
-signedballots = Channel(20)
-logch = Channel(20)
-
-verifymaintainer(d,s) = verify(d,s,G) && hash(s.pubkey)==maintainerid
-
-@async begin
-    keyserver = diffie(serversocket,serversign,verifymaintainer,G)
-    secureserversocket = SecureTunnel(serversocket,keyserver)
-    maintainercom(secureserversocket,userpubkeys,routers,signedballots,logch)
-end
-
-# Maintainer
-
-keyslave = hellman(slavesocket,slavesign,(d,s)->verify(d,s,G) && hash(s.pubkey)==serverid) 
-securesocket = SecureTunnel(slavesocket,keyslave)
-
-for i in 1:15
-    user = Signer(G)
-    approveduser = User(user.pubkey,G)
-    serialize(securesocket,approveduser,16*500)
-end
-
-# Server
-
-@show user = take!(userpubkeys)
-
-ballotkey = BallotKey(0,0)
-ballot = Ballot(ballotkey,["hello","world","here"])
-usersignatures = [1,2,3]
-sb = SignedBallot(ballot,usersignatures)
-
-put!(signedballots,sb)
-
-# Maintainer
-
-@show deserialize(securesocket)
-
