@@ -24,8 +24,7 @@ function user(serverport,serverid,routerid,sign,verify)
     
     # We could also do manual encrypion
 
-    #@show deserialize(sroutersocket)
-    #serialize(sroutersocket,"Secure message form the User to Router")
-    #serialize(securesocket,"Secure message form the User to Router")
+    @show deserialize(sroutersocket)
+    serialize(sroutersocket,"Secure message form the User to Router")
 end
 

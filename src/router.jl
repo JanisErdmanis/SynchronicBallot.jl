@@ -18,11 +18,11 @@ function router(routers,serverid,sign::Function,verify::Function,G)
         push!(susersockets,SecureTunnel(lines[i],key))
     end
     
-    # for i in 1:3
-    #     #@show typeof(susersockets[i])
-    #     #serialize(susersockets[i],"Secure message from the router")
-    #     @show deserialize(susersockets[1])
-    # end
+    for i in 1:3
+        #@show typeof(susersockets[i])
+        serialize(susersockets[i],"Secure message from the router")
+        @show deserialize(susersockets[i])
+    end
     
     serialize(secureserversocket,:Terminate)
     
