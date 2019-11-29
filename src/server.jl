@@ -48,6 +48,17 @@ function server(servers,routerport,routerid,userids,sign,verify,G)
 
     #@show deserialize(secureroutersocket)
     route(usersockets,secureroutersocket)
+    @assert deserialize(secureroutersocket)==:Terminate
+
+    @show messages = deserialize(secureroutersocket)
+    
+    signatures = []
+    
+    for i in 1:3
+        serialize(usersockets[i],messages)
+        #s = deserialize(usersockets[i])
+        #push!(signatures,s)
+    end
     
     # for i in 1:3
     #     @show deserialize(usersockets[1])

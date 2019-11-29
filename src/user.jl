@@ -18,15 +18,18 @@ function user(msg,serverport,serverid,routerid,sign,verify)
     # #@show deserialize(securesocket)
     # @show deserialize(securesocket)
 
-    @show key = hellman(securesocket,serialize,deserialize,sign,verify)
+    key = hellman(securesocket,serialize,deserialize,sign,verify)
 
     sroutersocket = SecureSerializer(securesocket,key)
     
     # We could also do manual encrypion
 
-    #@show deserialize(sroutersocket)
+    @assert deserialize(sroutersocket)==:Open
     #serialize(sroutersocket,"Secure message form the User to Router")
     serialize(sroutersocket,msg)
     
+    @show messages = deserialize(securesocket)
+    #s = sign(messages) ### Some logic in between
+    #serialize(securesocket,"me")
 end
 
