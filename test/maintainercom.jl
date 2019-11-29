@@ -37,15 +37,15 @@ logch = Channel(20)
 verifymaintainer(d,s) = verify(d,s,G) && hash(s.pubkey)==maintainerid
 
 @async begin
-    keyserver = diffie(serversocket,serversign,verifymaintainer,G)
-    secureserversocket = SecureTunnel(serversocket,keyserver)
+    keyserver = diffie(serversocket,serializer,deserializer,serversign,verifymaintainer,G)
+    secureserversocket = SecureSerializer(serversocket,keyserver)
     maintainercom(secureserversocket,userpubkeys,routers,signedballots,logch)
 end
 
 # Maintainer
 
-keyslave = hellman(slavesocket,slavesign,(d,s)->verify(d,s,G) && hash(s.pubkey)==serverid) 
-securesocket = SecureTunnel(slavesocket,keyslave)
+keyslave = hellman(slavesocket,serializer,deserializer,slavesign,(d,s)->verify(d,s,G) && hash(s.pubkey)==serverid) 
+securesocket = SecureSerializer(slavesocket,keyslave)
 
 for i in 1:15
     user = Signer(G)

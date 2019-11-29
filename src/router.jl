@@ -1,8 +1,8 @@
 function router(routers,serverid,sign::Function,verify::Function,G)
     @show "Router"
     serversocket = accept(routers)
-    key = diffie(serversocket,sign,verify,G)
-    secureserversocket = SecureTunnel(serversocket,key)
+    key = diffie(serversocket,serialize,deserialize,sign,verify,G)
+    secureserversocket = SecureSerializer(serversocket,key)
 
     @show deserialize(secureserversocket)
     
@@ -14,8 +14,8 @@ function router(routers,serverid,sign::Function,verify::Function,G)
     for i in 1:3
         serialize(lines[i],("Msg $i from router",1122))
         @show deserialize(lines[i])
-        key = diffie(lines[i],sign,verify,G)
-        push!(susersockets,SecureTunnel(lines[i],key))
+        key = diffie(lines[i],serialize,deserialize,sign,verify,G)
+        push!(susersockets,SecureSerializer(lines[i],key))
     end
     
     for i in 1:3

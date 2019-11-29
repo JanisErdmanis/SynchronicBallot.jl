@@ -54,7 +54,7 @@ push!(userids,hash(user3key.pubkey))
             close(servers)
         end
     end
-    @async user(2000,hash(serverkey.pubkey),hash(routerkey.pubkey),data->signdata(data,user1key),verifydata)
-    @async user(2000,hash(serverkey.pubkey),hash(routerkey.pubkey),data->signdata(data,user2key),verifydata)
-    @async user(2000,hash(serverkey.pubkey),hash(routerkey.pubkey),data->signdata(data,user3key),verifydata)
+    @async user("msg1",2000,hash(serverkey.pubkey),hash(routerkey.pubkey),data->signdata(data,user1key),verifydata)
+    @async user("msg2",2000,hash(serverkey.pubkey),hash(routerkey.pubkey),data->signdata(data,user2key),verifydata)
+    @async user("msg3",2000,hash(serverkey.pubkey),hash(routerkey.pubkey),data->signdata(data,user3key),verifydata)
 end
