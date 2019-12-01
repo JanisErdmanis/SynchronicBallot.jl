@@ -41,7 +41,7 @@ push!(userids,hash(user3key.pubkey))
     @async begin
         routers = listen(2001)
         try
-            router(routers,hash(serverkey.pubkey),data->signdata(data,routerkey),verifydata,G)
+            ballotbox(routers,hash(serverkey.pubkey),data->signdata(data,routerkey),verifydata,G)
         finally
             close(routers)
         end
@@ -49,12 +49,12 @@ push!(userids,hash(user3key.pubkey))
     @async begin
         servers = listen(2000)
         try 
-            server(servers,2001,hash(routerkey.pubkey),userids,data->signdata(data,serverkey),verifydata,G)
+            gatekeeper(servers,2001,hash(routerkey.pubkey),userids,data->signdata(data,serverkey),verifydata,G)
         finally
             close(servers)
         end
     end
-    @async user("msg1",2000,hash(serverkey.pubkey),hash(routerkey.pubkey),data->signdata(data,user1key),verifydata)
-    @async user("msg2",2000,hash(serverkey.pubkey),hash(routerkey.pubkey),data->signdata(data,user2key),verifydata)
-    @async user("msg3",2000,hash(serverkey.pubkey),hash(routerkey.pubkey),data->signdata(data,user3key),verifydata)
+    @async vote("msg1",2000,hash(serverkey.pubkey),hash(routerkey.pubkey),data->signdata(data,user1key),verifydata)
+    @async vote("msg2",2000,hash(serverkey.pubkey),hash(routerkey.pubkey),data->signdata(data,user2key),verifydata)
+    @async vote("msg3",2000,hash(serverkey.pubkey),hash(routerkey.pubkey),data->signdata(data,user3key),verifydata)
 end

@@ -31,38 +31,12 @@ Multiplexers.deserialize(io::BallotIOs) = deserialize(io)
 SecureIO.serialize(io::BallotIOs,msg) = serialize(io,msg)
 SecureIO.deserialize(io::BallotIOs) = deserialize(io)
 
-#using Serialization, SecureIO, Multiplexers
 
-
-#using SecureIO: Line, route
-
-abstract type MaintainerMessage end
-abstract type ServerMessage end
-abstract type UserMessage end
-
-# """
-# This one returns a secure conncetion between ballot server and maintainer
-# """
-# connect(bs::BallotServer,m::Maintainer) = connect(bs.ip,bs.maintainerport,pubkey->pubkey==bs.serverpubkey,m.key)
-
-include("maintainercom.jl")
-
-#include("multiplexer.jl")
-
-include("router.jl")
+include("ballotbox.jl")
+include("gatekeeper.jl")
 include("server.jl")
-include("user.jl")
+include("vote.jl")
 
-#include("usercom.jl")
-
-# include("messages.jl")
-# include("server.jl")
-# include("user.jl")
-# include("maintainer.jl")
-
-
-export router, server, user
-
-export maintainercom, BallotKey, Ballot, SignedBallot, User, Router
+export ballotbox, gatekeeper, vote, serve, ServerConfig, Command
 
 end 
