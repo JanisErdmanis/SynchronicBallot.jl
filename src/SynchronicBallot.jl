@@ -1,11 +1,12 @@
-module SharedBallot
+module SynchronicBallot
 
 using Sockets
+using Random
 using CryptoGroups
 using CryptoSignatures
 using DiffieHellman
 
-import Multiplexers: Line, route
+import Multiplexers: Line, route, forward, Multiplexer
 import SecureIO: SecureSerializer
 
 # @import Serialization,SecureIO,Multiplexers: serialize, deserialize
@@ -37,6 +38,6 @@ include("gatekeeper.jl")
 include("server.jl")
 include("vote.jl")
 
-export ballotbox, gatekeeper, vote, serve, ServerConfig, Command
+export ballotbox, gatekeeper, vote, serve, ServerConfig, Command, GateKeeperRoute
 
 end 

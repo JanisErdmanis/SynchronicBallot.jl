@@ -87,6 +87,11 @@ git-tree-sha1 = "e31203c06840dd7e44af0181a79dfbcd83337beb"
 uuid = "7475f97c-0381-53b1-977b-4c60186c8d62"
 version = "0.1.0"
 
+[[Multiplexers]]
+git-tree-sha1 = "290f0fa68ace1b1281303b5b4e98485b014550db"
+uuid = "d8f48be2-8af9-45f0-b400-11a6372d221d"
+version = "0.1.0"
+
 [[Nettle]]
 deps = ["BinDeps", "BinaryProvider", "Libdl", "Test"]
 git-tree-sha1 = "f57e8e907faab4f55f9f164313a633509ac83e2c"

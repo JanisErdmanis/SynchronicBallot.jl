@@ -15,10 +15,9 @@ function gatekeeper(servers,secureroutersocket,userids,N,sign,verify,G)
         push!(usersockets,secureusersocket)
     end
 
-    route(usersockets,secureroutersocket)
-    @assert deserialize(secureroutersocket)==:Terminate
-
-    @show messages = deserialize(secureroutersocket)
+    forward(usersockets,secureroutersocket)
+        
+    messages = deserialize(secureroutersocket)
     
     signatures = []
     
@@ -28,7 +27,7 @@ function gatekeeper(servers,secureroutersocket,userids,N,sign,verify,G)
         push!(signatures,s)
     end
 
-    return (messaeges,signatures)
+    return (messages,signatures)
 end
 
 struct BallotBoxRoute

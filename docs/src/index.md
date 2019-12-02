@@ -1,4 +1,4 @@
-# SharedBallot anonymous and unique message registration protocol 
+# SynchronicBallot anonymous and unique message registration protocol 
 
 Essential part of PeaceVote electronic voting system is in establishing anonymous public key ledger. The simplest ways of performing paper bailout with public keys or making a BalticWay where people cover their faces and show public keys are not practical although very entertaining. 
 
