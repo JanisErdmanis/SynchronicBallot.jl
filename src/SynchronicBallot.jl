@@ -38,6 +38,6 @@ include("gatekeeper.jl")
 include("server.jl")
 include("vote.jl")
 
-export ballotbox, gatekeeper, vote, serve, ServerConfig, Command, GateKeeperRoute
+export ballotbox, gatekeeper, vote, serve, ServerConfig, Command, GateKeeperRoute, BallotBox, GateKeeper, BallotBoxRoute, GateKeeperConfig
 
 end 

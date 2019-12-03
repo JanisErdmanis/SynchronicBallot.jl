@@ -2,9 +2,6 @@
 
 function ballotbox(secureserversocket,sign::Function,verify::Function,G)
     @show "BallotBox"
-    # serversocket = accept(routers)
-    # key = diffie(serversocket,serialize,deserialize,sign,verify,G)
-    # secureserversocket = SecureSerializer(serversocket,key)
 
     N = deserialize(secureserversocket)
     
@@ -48,14 +45,14 @@ function BallotBox(port,sign::Function,verify::Function,G)
         @async begin
             key = diffie(serversocket,serialize,deserialize,sign,verify,G)
             
-            if iserror(key)
-                error("Not valid key")
-            else
-                gksecuresocket = SecureSerializer(serversocket,key)
-                while isopen(serversocket)
-                    ballotbox(gksecuresocket,sign,verify,G)
-                end
+            #if iserror(key)
+            #error("Not valid key")
+            #else
+            gksecuresocket = SecureSerializer(serversocket,key)
+            while isopen(serversocket)
+                ballotbox(gksecuresocket,sign,verify,G)
             end
+            #end
         end
     end
 
