@@ -42,10 +42,10 @@ deps = ["Mmap"]
 uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 
 [[DiffieHellman]]
-deps = ["CryptoGroups", "CryptoSignatures", "Random", "Serialization"]
-git-tree-sha1 = "c0f9f4aac6db8d39285d3c5b3fb903eae8ce0242"
+deps = ["CryptoGroups", "CryptoSignatures", "Random"]
+git-tree-sha1 = "c55d8fa4af386623ad399c7f9781adec0d18a02c"
 uuid = "0e61fee8-20a4-4374-8233-5198f28d9d66"
-version = "0.1.0"
+version = "0.2.0"
 
 [[Distributed]]
 deps = ["Random", "Serialization", "Sockets"]
@@ -88,9 +88,9 @@ uuid = "7475f97c-0381-53b1-977b-4c60186c8d62"
 version = "0.1.0"
 
 [[Multiplexers]]
-git-tree-sha1 = "290f0fa68ace1b1281303b5b4e98485b014550db"
+git-tree-sha1 = "fd74ebce2d5a06ed7344e84b1c7b43f617c7f594"
 uuid = "d8f48be2-8af9-45f0-b400-11a6372d221d"
-version = "0.1.0"
+version = "0.2.0"
 
 [[Nettle]]
 deps = ["BinDeps", "BinaryProvider", "Libdl", "Test"]
