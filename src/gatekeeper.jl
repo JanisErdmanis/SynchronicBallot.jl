@@ -75,3 +75,8 @@ function GateKeeper(port,config::GateKeeperConfig,sign,verify)
     GateKeeper(config,server,ballotbox,daemon,userset,ballotch)
 end
 
+function stop(gatekeeper::GateKeeper)
+    server = gatekeeper.server
+    close(server)
+    @async Base.throwto(gatekeeper.daemon,InterruptException())
+end

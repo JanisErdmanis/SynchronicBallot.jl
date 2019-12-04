@@ -27,13 +27,18 @@ function ballotbox(secureserversocket,sign::Function,verify::Function,G)
     serialize(secureserversocket,messages[rp]) 
 end
 
+struct BallotBoxConfig
+    G
+end
+
 struct BallotBox
     server
     daemon
     gatekeeperset::Set
 end
 
-function BallotBox(port,sign::Function,verify::Function,G)
+function BallotBox(port,config::BallotBoxConfig,sign::Function,verify::Function)
+    G = config.G
     server = listen(port)
 
     gatekeeperset = Set()
@@ -57,4 +62,10 @@ function BallotBox(port,sign::Function,verify::Function,G)
     end
 
     return BallotBox(server,daemon,gatekeeperset)
+end
+
+function stop(ballotbox::BallotBox)
+    server = ballotbox.server
+    Sockets.close(server)
+    @async Base.throwto(ballotbox.daemon,InterruptException())
 end

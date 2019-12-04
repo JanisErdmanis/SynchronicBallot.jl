@@ -7,7 +7,6 @@ end
 import Sockets.connect
 function connect(route::GateKeeperRoute,sign,verify)
     ### verify needs to take into account ballotboxset
-
     usersocket = connect(route.gatekeeperport)
     key = hellman(usersocket,serialize,deserialize,sign,verify)
     securesocket = SecureSerializer(usersocket,key)
@@ -17,9 +16,6 @@ end
 
 function vote(msg,route::GateKeeperRoute,sign,verify)
     @show "User"
-    # usersocket = connect(serverport)
-    # key = hellman(usersocket,serialize,deserialize,sign,verify)
-    # securesocket = SecureSerializer(usersocket,key)
 
     securesocket = connect(route,sign,verify)
 
