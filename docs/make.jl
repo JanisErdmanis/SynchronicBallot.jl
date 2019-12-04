@@ -1,7 +1,7 @@
 using Documenter
 
-makedocs(sitename="SharedBallot.jl",pages = ["index.md"])
+makedocs(sitename="SynchronicBallot.jl",pages = ["index.md"])
 
 deploydocs(
-     repo = "github.com/PeaceFounder/SharedBallot.jl.git",
+     repo = "github.com/PeaceFounder/SynchronicBallot.jl.git",
  )
