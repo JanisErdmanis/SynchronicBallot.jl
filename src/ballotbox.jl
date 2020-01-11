@@ -6,32 +6,13 @@ function ballotbox(secureserversocket,dhballotmember::DH,randperm::Function)
     mux = Multiplexer(secureserversocket,N)
     task = @async route(mux)
 
-
-    sleep(2)
-    @show "Here 2"
-    #
     susersockets = []
     for i in 1:N
-        
-        # @async serialize(mux.lines[i],"Hello from ballotbox")
-        # @show deserialize(mux.lines[i])
+        send = x -> serialize(mux.lines[i],x)
+        get = () -> deserialize(mux.lines[i])
 
-        send = x -> begin
-            #@show x
-            serialize(mux.lines[i],x)
-        end
-
-        get = () -> begin
-            x = deserialize(mux.lines[i])
-            #@show x
-            x
-        end
-
-        #@show get()
-        #send("World")
-
-        @show key,unknownid = hellman(send,get,dhballotmember)
-        #@assert unknownid==nothing
+        key,unknownid = hellman(send,get,dhballotmember)
+        @assert unknownid==nothing
         push!(susersockets,SecureSerializer(mux.lines[i],key))
     end
     

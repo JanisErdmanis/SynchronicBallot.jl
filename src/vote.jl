@@ -5,36 +5,16 @@ function vote(port,msg,dhmemberserver::DH,dhmemberballot::DH,sign::Function) # w
     key,serverid = diffiehellman(x -> serialize(usersocket,x),() -> deserialize(usersocket),dhmemberserver) 
     securesocket = SecureSerializer(usersocket,key)
 
-    sleep(3)
+    send = x-> serialize(securesocket,x)
+    get = () -> deserialize(securesocket)
 
-    # Let's verify the communication with ballotbox
-    
-    # @async serialize(securesocket,"Hello from membere")
-    # #sleep(2)
-    # @show deserialize(securesocket)
-
-    send = x-> begin
-        #@show x
-        serialize(securesocket,x)
-    end
-
-    get = () -> begin
-        x = deserialize(securesocket)
-        #@show x
-        x
-    end
-
-    # send("Hello")
-    # @show get()
-
-    @show key,ballotid = diffie(send,get,dhmemberballot)
+    key,ballotid = diffie(send,get,dhmemberballot)
     sroutersocket = SecureSerializer(securesocket,key)
 
-    # Perhaps I could return id with the key!
     @assert deserialize(sroutersocket)==:Open
     serialize(sroutersocket,msg)
     
-    @show messages = deserialize(securesocket)
+    messages = deserialize(securesocket)
 
     @assert msg in messages
     # Need to also add ballotboxid to the messages.

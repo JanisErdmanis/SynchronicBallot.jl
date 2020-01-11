@@ -13,7 +13,6 @@ function gatekeeper(servers,secureroutersocket,N::Integer,dhservermember::DH)
         push!(usersockets,secureusersocket)
     end
 
-    #@show "Here"
     forward(usersockets,secureroutersocket)
         
     messages = deserialize(secureroutersocket)
