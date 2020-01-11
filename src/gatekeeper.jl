@@ -1,4 +1,4 @@
-function gatekeeper(servers,secureroutersocket,userids,N,sign,verify,G)
+function gatekeeper(servers,secureroutersocket,N::Integer,dhservermember::DH)
     @show "GateKepper"
 
     serialize(secureroutersocket,N)
@@ -7,11 +7,13 @@ function gatekeeper(servers,secureroutersocket,userids,N,sign,verify,G)
 
     while length(usersockets)<N
         usersocket = accept(servers)
-        key = diffie(usersocket,serialize,deserialize,sign,verify,G)
+        key,memberid = diffiehellman(x->serialize(usersocket,x),()->deserialize(usersocket),dhservermember)
+        # here one asserts that memberid is in the set
         secureusersocket = SecureSerializer(usersocket,key)
         push!(usersockets,secureusersocket)
     end
 
+    #@show "Here"
     forward(usersockets,secureroutersocket)
         
     messages = deserialize(secureroutersocket)
@@ -27,40 +29,20 @@ function gatekeeper(servers,secureroutersocket,userids,N,sign,verify,G)
     return (messages,signatures)
 end
 
-struct BallotBoxRoute
-    port ### latter also an ip
-    id
-end
-
-import Sockets.connect
-function connect(route::BallotBoxRoute,sign,verify)
-
-    ballotbox = connect(route.port)
-    key = hellman(ballotbox,serialize,deserialize,sign,verify)
-    secureballotbox = SecureSerializer(ballotbox,key)
-
-    return secureballotbox
-end
-
-struct GateKeeperConfig
-    N::Integer
-    ballot::BallotBoxRoute
-    G
-end
-
 struct GateKeeper
-    config::GateKeeperConfig
+    N::Integer
     server # TCPServer
     ballotbox # Socket
     daemon # a Task
-    userset::Set
     ballots::Channel 
 end
 
-function GateKeeper(port,config::GateKeeperConfig,sign,verify)
+function GateKeeper(port,N::Integer,dhserverballot::DH,dhservermember::DH)
     ### verify needs to use config.id to check that the correct ballotbox had been connected. 
-    
-    ballotbox = connect(config.ballot,sign,verify)
+
+    ballotbox = connect(port)
+    key = diffiehellman(x -> serialize(ballotbox,x),() -> deserialize(ballotbox),dhservermember)
+    secureballotbox = SecureSerializer(ballotbox,key)
 
     server = listen(port)
 
@@ -68,11 +50,11 @@ function GateKeeper(port,config::GateKeeperConfig,sign,verify)
     ballotch = Channel(10)
 
     daemon = @async while true
-        ballot = gatekeeper(server,ballotbox,userset,config.N,sign,verify,config.G)
+        ballot = gatekeeper(server,secureballotbox,N,dhservermember)
         put!(ballotch,ballot)
     end
     
-    GateKeeper(config,server,ballotbox,daemon,userset,ballotch)
+    GateKeeper(N,server,ballotbox,daemon,ballotch)
 end
 
 function stop(gatekeeper::GateKeeper)

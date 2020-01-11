@@ -1,16 +1,37 @@
-### Multiple ballotboxes withn single server does not seem to be something practical.
-
-function ballotbox(secureserversocket,sign::Function,verify::Function,G)
+function ballotbox(secureserversocket,dhballotmember::DH,randperm::Function)
     @show "BallotBox"
 
-    N = deserialize(secureserversocket)
+    @show N = deserialize(secureserversocket)
     
     mux = Multiplexer(secureserversocket,N)
     task = @async route(mux)
-    
+
+
+    sleep(2)
+    @show "Here 2"
+    #
     susersockets = []
     for i in 1:N
-        key = diffie(mux.lines[i],serialize,deserialize,sign,verify,G)
+        
+        # @async serialize(mux.lines[i],"Hello from ballotbox")
+        # @show deserialize(mux.lines[i])
+
+        send = x -> begin
+            #@show x
+            serialize(mux.lines[i],x)
+        end
+
+        get = () -> begin
+            x = deserialize(mux.lines[i])
+            #@show x
+            x
+        end
+
+        #@show get()
+        #send("World")
+
+        @show key,unknownid = hellman(send,get,dhballotmember)
+        #@assert unknownid==nothing
         push!(susersockets,SecureSerializer(mux.lines[i],key))
     end
     
@@ -27,41 +48,26 @@ function ballotbox(secureserversocket,sign::Function,verify::Function,G)
     serialize(secureserversocket,messages[rp]) 
 end
 
-struct BallotBoxConfig
-    G
-end
-
 struct BallotBox
     server
     daemon
-    gatekeeperset::Set
 end
 
-function BallotBox(port,config::BallotBoxConfig,sign::Function,verify::Function)
-    G = config.G
+function BallotBox(port,dhballotserver::DH,dhballotmember::DH,randperm::Function)
     server = listen(port)
-
-    gatekeeperset = Set()
-
-    # One needs to define verify with the corresponding gatekeeperset
 
     daemon = @async while true
         serversocket = accept(server)
         @async begin
-            key = diffie(serversocket,serialize,deserialize,sign,verify,G)
-            
-            #if iserror(key)
-            #error("Not valid key")
-            #else
+            key = diffie(x->serialize(serversocket,x),()->deserialize(serversocket),dhballotserver)
             gksecuresocket = SecureSerializer(serversocket,key)
             while isopen(serversocket)
-                ballotbox(gksecuresocket,sign,verify,G)
+                ballotbox(gksecuresocket,dhballotmember,randperm)
             end
-            #end
         end
     end
 
-    return BallotBox(server,daemon,gatekeeperset)
+    return BallotBox(server,daemon)
 end
 
 function stop(ballotbox::BallotBox)

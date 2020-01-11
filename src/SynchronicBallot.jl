@@ -1,9 +1,9 @@
 module SynchronicBallot
 
 using Sockets
-using Random
-using CryptoGroups
-using CryptoSignatures
+#using Random
+#using CryptoGroups
+#using CryptoSignatures
 using DiffieHellman
 
 import Multiplexers: Line, route, forward, Multiplexer
@@ -32,12 +32,14 @@ Multiplexers.deserialize(io::BallotIOs) = deserialize(io)
 SecureIO.serialize(io::BallotIOs,msg) = serialize(io,msg)
 SecureIO.deserialize(io::BallotIOs) = deserialize(io)
 
-
 include("ballotbox.jl")
 include("gatekeeper.jl")
-include("server.jl")
 include("vote.jl")
 
-export ballotbox, gatekeeper, vote, serve, ServerConfig, Command, GateKeeperRoute, BallotBox, GateKeeper, BallotBoxRoute, GateKeeperConfig, BallotBoxConfig
+
+export ballotbox, gatekeeper, vote, BallotBox, GateKeeper
+
+# include("server.jl") # Unecessary obstruction for the goal of the library
+# serve, ServerConfig, Command, GateKeeperRoute, BallotBox, GateKeeper, BallotBoxRoute, GateKeeperConfig, BallotBoxConfig
 
 end 
