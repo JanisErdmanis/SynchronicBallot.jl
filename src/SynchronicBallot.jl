@@ -1,9 +1,6 @@
 module SynchronicBallot
 
 using Sockets
-#using Random
-#using CryptoGroups
-#using CryptoSignatures
 using DiffieHellman
 
 import Multiplexers: Line, route, forward, Multiplexer
@@ -36,10 +33,6 @@ include("ballotbox.jl")
 include("gatekeeper.jl")
 include("vote.jl")
 
-
-export ballotbox, gatekeeper, vote, BallotBox, GateKeeper
-
-# include("server.jl") # Unecessary obstruction for the goal of the library
-# serve, ServerConfig, Command, GateKeeperRoute, BallotBox, GateKeeper, BallotBoxRoute, GateKeeperConfig, BallotBoxConfig
+export BallotBox, GateKeeper, stop, vote
 
 end 

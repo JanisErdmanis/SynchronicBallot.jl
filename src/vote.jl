@@ -1,5 +1,5 @@
 function vote(port,msg,dhmemberserver::DH,dhmemberballot::DH,sign::Function) # wrap, unwrap
-    @show "User"
+    #@show "User"
     
     usersocket = connect(port)
     key,serverid = diffiehellman(x -> serialize(usersocket,x),() -> deserialize(usersocket),dhmemberserver) 

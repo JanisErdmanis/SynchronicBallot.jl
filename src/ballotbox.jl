@@ -1,7 +1,7 @@
 function ballotbox(secureserversocket,dhballotmember::DH,randperm::Function)
-    @show "BallotBox"
+    #@show "BallotBox"
 
-    @show N = deserialize(secureserversocket)
+    N = deserialize(secureserversocket)
     
     mux = Multiplexer(secureserversocket,N)
     task = @async route(mux)
@@ -40,7 +40,7 @@ function BallotBox(port,dhballotserver::DH,dhballotmember::DH,randperm::Function
     daemon = @async while true
         serversocket = accept(server)
         @async begin
-            key = diffie(x->serialize(serversocket,x),()->deserialize(serversocket),dhballotserver)
+            key, serverid = diffiehellman(x->serialize(serversocket,x),()->deserialize(serversocket),dhballotserver)
             gksecuresocket = SecureSerializer(serversocket,key)
             while isopen(serversocket)
                 ballotbox(gksecuresocket,dhballotmember,randperm)

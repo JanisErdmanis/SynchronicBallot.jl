@@ -1,12 +1,12 @@
-function gatekeeper(servers,secureroutersocket,N::Integer,dhservermember::DH)
-    @show "GateKepper"
+function gatekeeper(server,secureroutersocket,N::Integer,dhservermember::DH)
+    #@show "GateKepper"
 
     serialize(secureroutersocket,N)
 
     usersockets = IO[]
 
     while length(usersockets)<N
-        usersocket = accept(servers)
+        usersocket = accept(server)
         key,memberid = diffiehellman(x->serialize(usersocket,x),()->deserialize(usersocket),dhservermember)
         # here one asserts that memberid is in the set
         secureusersocket = SecureSerializer(usersocket,key)
@@ -36,11 +36,11 @@ struct GateKeeper
     ballots::Channel 
 end
 
-function GateKeeper(port,N::Integer,dhserverballot::DH,dhservermember::DH)
+function GateKeeper(port,ballotport,N::Integer,dhserverballot::DH,dhservermember::DH)
     ### verify needs to use config.id to check that the correct ballotbox had been connected. 
 
-    ballotbox = connect(port)
-    key = diffiehellman(x -> serialize(ballotbox,x),() -> deserialize(ballotbox),dhservermember)
+    ballotbox = connect(ballotport)
+    key,ballotid = diffiehellman(x -> serialize(ballotbox,x),() -> deserialize(ballotbox),dhservermember)
     secureballotbox = SecureSerializer(ballotbox,key)
 
     server = listen(port)
