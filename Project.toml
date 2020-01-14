@@ -16,7 +16,7 @@ Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"
 [compat]
 CryptoGroups = "0.1.1"
 CryptoSignatures = "0.2"
-DiffieHellman = "0.2"
+DiffieHellman = "^0.3"
 Multiplexers = "^0.2"
 SecureIO = "0.1"
 julia = "1.3"

@@ -2,36 +2,133 @@ module SynchronicBallot
 
 using Sockets
 using DiffieHellman
+using OnionSockets
+import Multiplexers: route, forward, Multiplexer # using Multiplexers
 
-import Multiplexers: Line, route, forward, Multiplexer
-import SecureIO: SecureSerializer
+function ballotbox(secureserversocket,dhballotmember::DH,randperm::Function)
+    N = deserialize(secureserversocket)
+    
+    mux = Multiplexer(secureserversocket,N)
+    task = @async route(mux)
 
-# @import Serialization,SecureIO,Multiplexers: serialize, deserialize
+    susersockets = []
+    for i in 1:N
+        securesocket = accept(mux.lines[i],dhballotmember)
+        push!(susersockets,securesocket)
+    end
+    
+    messages = []
+    for i in 1:N
+        serialize(susersockets[i],:Open)
+        msg = deserialize(susersockets[i])
+        push!(messages,msg)
+    end
+    serialize(secureserversocket,:Terminate)
+    wait(task) 
 
-import Serialization
-import SecureIO
-import Multiplexers
+    rp = randperm(N)
+    serialize(secureserversocket,messages[rp]) 
+end
 
-serialize(io::Union{TCPSocket,IOBuffer},msg) = Serialization.serialize(io,msg)
-deserialize(io::Union{TCPSocket,IOBuffer}) = Serialization.deserialize(io)
+struct BallotBox
+    server
+    daemon
+end
 
-serialize(io::Line,msg) = Multiplexers.serialize(io,msg)
-deserialize(io::Line) = Multiplexers.deserialize(io)
+function BallotBox(port,dhballotserver::DH,dhballotmember::DH,randperm::Function)
+    server = listen(port)
 
-serialize(io::SecureSerializer,msg) = SecureIO.serialize(io,msg)
-deserialize(io::SecureSerializer) = SecureIO.deserialize(io)
+    daemon = @async while true
+        
+        gksecuresocket = accept(server,nothing,dhballotserver)
 
-BallotIOs = Union{TCPSocket,IOBuffer,Line,SecureSerializer} 
+        @async while isopen(gksecuresocket)
+            ballotbox(gksecuresocket,dhballotmember,randperm)
+        end
+    end
 
-Multiplexers.serialize(io::BallotIOs,msg) = serialize(io,msg)
-Multiplexers.deserialize(io::BallotIOs) = deserialize(io)
+    return BallotBox(server,daemon)
+end
 
-SecureIO.serialize(io::BallotIOs,msg) = serialize(io,msg)
-SecureIO.deserialize(io::BallotIOs) = deserialize(io)
+function stop(ballotbox::BallotBox)
+    server = ballotbox.server
+    Sockets.close(server)
+    @async Base.throwto(ballotbox.daemon,InterruptException())
+end
 
-include("ballotbox.jl")
-include("gatekeeper.jl")
-include("vote.jl")
+function gatekeeper(server,secureroutersocket,N::Integer,dhservermember::DH)
+    serialize(secureroutersocket,N)
+
+    usersockets = IO[]
+
+    while length(usersockets)<N
+        secureusersocket = accept(server,nothing,dhservermember)
+        push!(usersockets,secureusersocket)
+    end
+
+    forward(usersockets,secureroutersocket)
+        
+    messages = deserialize(secureroutersocket)
+    
+    signatures = []
+    
+    for i in 1:N
+        serialize(usersockets[i],messages)
+        s = deserialize(usersockets[i]) ### One should verify also the signatures
+        push!(signatures,s)
+    end
+
+    return (messages,signatures)
+end
+
+struct GateKeeper
+    N::Integer
+    server # TCPServer
+    ballotbox # Socket
+    daemon # a Task
+    ballots::Channel 
+end
+
+function GateKeeper(port,ballotport,N::Integer,dhserverballot::DH,dhservermember::DH)
+    ### verify needs to use config.id to check that the correct ballotbox had been connected. 
+
+    secureballotbox = connect(ballotport,nothing,dhservermember)
+
+    server = listen(port)
+
+    userset = Set()
+    ballotch = Channel(10)
+
+    daemon = @async while true
+        ballot = gatekeeper(server,secureballotbox,N,dhservermember)
+        put!(ballotch,ballot)
+    end
+    
+    GateKeeper(N,server,ballotbox,daemon,ballotch)
+end
+
+function stop(gatekeeper::GateKeeper)
+    server = gatekeeper.server
+    close(server)
+    @async Base.throwto(gatekeeper.daemon,InterruptException())
+end
+
+function vote(port,msg,dhmemberserver::DH,dhmemberballot::DH,sign::Function) # wrap, unwrap
+    securesocket = connect(port,nothing,dhmemberserver)
+
+    sroutersocket = connect(securesocket,nothing,dhmemberballot)
+
+    @assert deserialize(sroutersocket)==:Open
+    serialize(sroutersocket,msg)
+    
+    messages = deserialize(securesocket)
+
+    @assert msg in messages
+    # Need to also add ballotboxid to the messages.
+
+    s = sign(messages) 
+    serialize(securesocket,s)
+end
 
 export BallotBox, GateKeeper, stop, vote
 
