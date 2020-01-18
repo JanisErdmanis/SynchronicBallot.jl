@@ -1,9 +1,15 @@
 using SynchronicBallot
-using Sockets
 using CryptoGroups
 using CryptoSignatures
 using Random
 using DiffieHellman
+using Sockets
+
+
+import Serialization
+using SecureIO
+import SecureIO.SecureSocket
+SecureSocket(socket::TCPSocket,key) = SecureSocket(Socket(socket,Serialization.serialize,Serialization.deserialize),key)
 
 function rngint(len::Integer)
     max_n = ( BigInt(1) << len ) - 1
