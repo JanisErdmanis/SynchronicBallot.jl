@@ -50,9 +50,9 @@ uuid = "7475f97c-0381-53b1-977b-4c60186c8d62"
 version = "0.1.0"
 
 [[Multiplexers]]
-git-tree-sha1 = "b28fdd20d93f039ce9ecd4beb6761a5355bfe94b"
+git-tree-sha1 = "262b92184325959e231a93ec5acd61b29b20d237"
 uuid = "d8f48be2-8af9-45f0-b400-11a6372d221d"
-version = "0.3.0"
+version = "0.3.1"
 
 [[Paillier]]
 deps = ["Polynomials", "Primes", "Random"]

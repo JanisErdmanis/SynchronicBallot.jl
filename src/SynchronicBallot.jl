@@ -1,28 +1,13 @@
 module SynchronicBallot
 
 using DiffieHellman
-#using OnionSockets
-
-# Now I need to add assertion checks 
-
 using Multiplexers
+using Serialization
 
 ######## So this part I would wish to take out.
-
-### This part will also be out of module. One might want to implement his own transport layer.
 using Sockets
 import Sockets.connect
 import Sockets.accept
-import Sockets.TCPSocket
-
-import Serialization
-import Multiplexers.serialize
-serialize(socket::TCPSocket,x) = Serialization.serialize(socket,x)
-
-import Multiplexers.deserialize
-deserialize(socket::TCPSocket) = Serialization.deserialize(socket)
-
-##################
 
 struct SocketConfig
     id
@@ -39,7 +24,7 @@ function _connect(socket,sc::SocketConfig) #id,dh::DH,SecureSocket)
     send = x-> serialize(socket,x)
     get = () -> deserialize(socket)
 
-    key,id = diffie(send,get,sc.dh)
+    key,id = diffiehellman(send,get,sc.dh)
     @assert id in sc.id "$id not in $(sc.id)"
 
     sroutersocket = sc.SecureSocket(socket,key)
@@ -53,7 +38,7 @@ function _accept(socket,sc::SocketConfig) #members,dh::DH,SecureSocket)
     send = x -> serialize(socket,x)
     get = () -> deserialize(socket)
 
-    key,id = hellman(send,get,sc.dh)
+    key,id = diffiehellman(send,get,sc.dh)
     @assert id in sc.id "$id not in $(sc.id)"
 
     securesocket = sc.SecureSocket(socket,key) ### Here then I could give onion socket!
@@ -111,6 +96,7 @@ function stop(ballotbox::BallotBox)
     server = ballotbox.server
     Sockets.close(server)
     @async Base.throwto(ballotbox.daemon,InterruptException())
+    return nothing
 end
 
 ######## GateKeeper ###########
@@ -172,6 +158,7 @@ function stop(gatekeeper::GateKeeper)
     server = gatekeeper.server
     close(server)
     @async Base.throwto(gatekeeper.daemon,InterruptException())
+    return nothing
 end
 
 ### In the user side one might also want something like anonymousconnect (or onionconnect, OnionSocket). Somehow we need to make it play nicelly with SecureIO.
