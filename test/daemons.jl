@@ -1,19 +1,14 @@
 ### For simplicity we assume the same group to be ussed everywhere. 
-G = CryptoGroups.MODP160Group()
-Signature(data,signer) = DSASignature(hash("$data"),signer)
+G = CryptoGroups.Scep256k1Group() # a bug. probably from binary going to value
+#G = CryptoGroups.MODP160Group()
 
-chash(envelopeA,envelopeB,key) = hash("$envelopeA $envelopeB $key")
-id(s) = s.pubkey
+DHasym(key) = DH(value->wrapsigned(value,key),unwrapmsg,G,chash,() -> rngint(100))
+DHasym() = DH(wrapmsg,unwrapsigned,G,chash,() -> rngint(100))
 
-function unwrap(envelope)
-    data, signature = envelope
-    @assert verify(signature,G)
-    @assert signature.hash==hash("$data")
-    return data, id(signature)
-end
+DHsym(key) =  DH(value->wrapsigned(value,key),unwrapsigned,G,chash,() -> rngint(100))
 
-ballotkey = Signer(G)
-ballotid = id(ballotkey)
+mixerkey = Signer(G)
+mixerid = id(mixerkey)
 
 gatekey = Signer(G)
 gateid = id(gatekey)
@@ -28,32 +23,33 @@ push!(userids,id(user1key))
 push!(userids,id(user2key))
 push!(userids,id(user3key))
 
+mixermember = SocketConfig(nothing,DHasym(mixerkey),(socket,key)->SecureSocket(socket,key))
+membermixer = SocketConfig(mixerid,DHasym(),(socket,key)->SecureSocket(socket,key))
 
-ballotmember = SocketConfig(nothing,DH(data->(data,Signature(data,ballotkey)),envelope->envelope,G,chash,() -> rngint(100)),(socket,key)->SecureSocket(socket,key))
-memberballot = SocketConfig(ballotid,DH(data->(data,nothing),unwrap,G,chash,() -> rngint(100)),(socket,key)->SecureSocket(socket,key))
+mixergate = SocketConfig(gateid,DHsym(mixerkey),(socket,key)->SecureSocket(socket,key))
+gatemixer = SocketConfig(mixerid,DHsym(gatekey),(socket,key)->SecureSocket(socket,key))
 
-ballotgate = SocketConfig(gateid,DH(data->(data,Signature(data,ballotkey)),unwrap,G,chash,()->rngint(100)),(socket,key)->SecureSocket(socket,key))
-gateballot = SocketConfig(ballotid,DH(data->(data,Signature(data,gatekey)),unwrap,G,chash,()->rngint(100)),(socket,key)->SecureSocket(socket,key))
-
-membergate(memberkey) = SocketConfig(gateid,DH(data->(data,Signature(data,memberkey)),unwrap,G,chash,() -> rngint(100)),(socket,key)->SecureSocket(socket,key))
-gatemember = SocketConfig(userids,DH(data->(data,Signature(data,gatekey)),unwrap,G,chash,() -> rngint(100)),(socket,key)->SecureSocket(socket,key))
+membergate(memberkey) = SocketConfig(gateid,DHsym(memberkey),(socket,key)->SecureSocket(socket,key))
+gatemember = SocketConfig(userids,DHsym(gatekey),(socket,key)->SecureSocket(socket,key))
 
 ### The ballotbox server does:
-bboxserver = BallotBox(2001,ballotgate,ballotmember,randperm)
+mixerserver = Mixer(2001,mixergate,mixermember)
 
 ### The gatekeeper does
-gkserver = GateKeeper(2000,2001,3,gateballot,gatemember)
+gkserver = GateKeeper(2000,2001,UInt8(3),UInt8(4),gatemixer,gatemember,()->Vector{UInt8}("Hello World"))
 
 ### Users do:
 
-@async vote(2000,membergate(user1key),memberballot,"msg1",x -> Signature(x,user1key))
-@async vote(2000,membergate(user2key),memberballot,"msg2",x -> Signature(x,user2key))
-@async vote(2000,membergate(user3key),memberballot,"msg3",x -> Signature(x,user3key))
+@async vote(2000,membergate(user1key),membermixer,Vector{UInt8}("msg1"),(m,b) -> sign(m,b,user1key))
+@async vote(2000,membergate(user2key),membermixer,Vector{UInt8}("msg2"),(m,b) -> sign(m,b,user2key))
+@async vote(2000,membergate(user3key),membermixer,Vector{UInt8}("msg3"),(m,b) -> sign(m,b,user3key))
 
 ### After that gatekeeper gets ballot
 
 @show take!(gkserver.ballots)
 
 ### Stopping stuff 
-stop(bboxserver)
+sleep(1)
+
+stop(mixerserver)
 stop(gkserver)

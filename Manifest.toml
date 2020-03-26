@@ -3,17 +3,22 @@
 [[Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
-[[CryptoGroups]]
-deps = ["ECC", "Mods", "Paillier", "Primes", "Random"]
-git-tree-sha1 = "bb0010c75b48901012f5bd567ef4e82a3ca3278f"
-uuid = "bc997328-bedd-407e-bcd3-5758e064a52d"
+[[BitConverter]]
+git-tree-sha1 = "5274a781a2e71cfb9a2083dfcd2ca5318716a660"
+uuid = "3a3ce9e8-98e7-11e9-0fa0-055639f146d3"
 version = "0.1.1"
+
+[[CryptoGroups]]
+deps = ["BitConverter", "ECC", "Mods", "Paillier", "Primes", "Random"]
+git-tree-sha1 = "85c8ff8078d384a7d7c1ce22cc255f698731eed7"
+uuid = "bc997328-bedd-407e-bcd3-5758e064a52d"
+version = "0.1.2"
 
 [[DiffieHellman]]
 deps = ["CryptoGroups"]
-git-tree-sha1 = "3cb5247c4b8224dc74ef81f66120bc0061d9c560"
+git-tree-sha1 = "a16ae95af764fa991b031504824b40ce21551a08"
 uuid = "0e61fee8-20a4-4374-8233-5198f28d9d66"
-version = "0.3.0"
+version = "0.4.0"
 
 [[Distributed]]
 deps = ["Random", "Serialization", "Sockets"]
@@ -62,9 +67,9 @@ version = "0.2.4"
 
 [[Polynomials]]
 deps = ["LinearAlgebra", "RecipesBase"]
-git-tree-sha1 = "ae71c2329790af97b7682b11241b3609e4d48626"
+git-tree-sha1 = "1185511cac8ab9d0b658b663eae34fe9a95d4332"
 uuid = "f27b6e38-b328-58d1-80ce-0feddd5e7a45"
-version = "0.6.0"
+version = "0.6.1"
 
 [[Primes]]
 deps = ["Test"]
@@ -77,9 +82,9 @@ deps = ["Serialization"]
 uuid = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
 [[RecipesBase]]
-git-tree-sha1 = "7bdce29bc9b2f5660a6e5e64d64d91ec941f6aa2"
+git-tree-sha1 = "b4ed4a7f988ea2340017916f7c9e5d7560b52cae"
 uuid = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
-version = "0.7.0"
+version = "0.8.0"
 
 [[Serialization]]
 uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
