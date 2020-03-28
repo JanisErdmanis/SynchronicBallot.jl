@@ -124,8 +124,11 @@ function mixer(secureserversocket::IO,ballotmember::SocketConfig)
     close(mux)
 
     shapedmessages = reshape(messages,(M,N))
-    sort!(shapedmessages, dims=1)
-    stack(secureserversocket,reshape(shapedmessages,:))
+
+    ### I need to sort whoole collumns
+    #sort!(shapedmessages, dims=2) # We may need to look into it
+    sortedmessages = sortslices(shapedmessages, dims=2)
+    stack(secureserversocket,reshape(sortedmessages,:))
 end
 
 struct Mixer
@@ -219,9 +222,10 @@ function GateKeeper(port,ballotport,N::UInt8,M::UInt8,gateballot::SocketConfig,g
     ballotch = Channel(10)
 
     daemon = @async while true
-        ballot = gatekeeper(server,secureballotbox,N,M,gatemember,metadata())
+        m = metadata()
+        ballot = gatekeeper(server,secureballotbox,N,M,gatemember,m)
         # one also adds ballotid from gateballot.id
-        put!(ballotch,ballot)
+        put!(ballotch,(m,ballot...))
     end
     
     GateKeeper(N,server,secureballotbox,daemon,ballotch)

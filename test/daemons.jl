@@ -41,8 +41,8 @@ gkserver = GateKeeper(2000,2001,UInt8(3),UInt8(4),gatemixer,gatemember,()->Vecto
 ### Users do:
 
 @async vote(2000,membergate(user1key),membermixer,Vector{UInt8}("msg1"),(m,b) -> sign(m,b,user1key))
-@async vote(2000,membergate(user2key),membermixer,Vector{UInt8}("msg2"),(m,b) -> sign(m,b,user2key))
-@async vote(2000,membergate(user3key),membermixer,Vector{UInt8}("msg3"),(m,b) -> sign(m,b,user3key))
+@async vote(2000,membergate(user2key),membermixer,Vector{UInt8}("msg3"),(m,b) -> sign(m,b,user2key))
+@async vote(2000,membergate(user3key),membermixer,Vector{UInt8}("msg2"),(m,b) -> sign(m,b,user3key))
 
 ### After that gatekeeper gets ballot
 

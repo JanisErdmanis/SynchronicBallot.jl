@@ -1,7 +1,7 @@
 name = "SynchronicBallot"
 uuid = "c4fd2470-c9f5-491f-b4e2-53b9059945a5"
 authors = ["akels <akels14@gmail.com>"]
-version = "0.3.0"
+version = "0.3.1"
 
 [deps]
 DiffieHellman = "0e61fee8-20a4-4374-8233-5198f28d9d66"
