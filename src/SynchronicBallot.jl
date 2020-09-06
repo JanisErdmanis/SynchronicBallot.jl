@@ -1,19 +1,12 @@
 module SynchronicBallot
 
-using DiffieHellman
-using Multiplexers
-#using Serialization
+abstract type Layer end
+function secure end
 
-######## So this part I would wish to take out.
+using Multiplexers
 using Sockets
-import Sockets.connect
-import Sockets.accept
 
 ##### For Debugging #####
-
-# GateKeeper
-# Mixer
-
 
 import Base.sync_varname
 import Base.@async
@@ -61,45 +54,9 @@ function unstack(io::IO)
     return msg
 end
 
-### We need to also look into DiffieHellman
-
-##### CODE #####
-struct SocketConfig
-    id
-    dh::DH
-    SecureSocket
-end
-
-import Base.in
-in(x::Nothing,y::Nothing) = true
-
-import Base.LibuvStream
-
-function _connect(socket,sc::SocketConfig) #id,dh::DH,SecureSocket)
-    key,id = diffiehellman(socket,sc.dh)
-    @assert id in sc.id "$id not in $(sc.id)"
-
-    sroutersocket = sc.SecureSocket(socket,key)
-    return sroutersocket
-end
-connect(socket::LibuvStream,sc::SocketConfig) = _connect(socket,sc)
-connect(socket::IO,sc::SocketConfig) = _connect(socket,sc)
-
-
-function _accept(socket,sc::SocketConfig) #members,dh::DH,SecureSocket)
-    key,id = diffiehellman(socket,sc.dh)
-    @assert id in sc.id "$id not in $(sc.id)"
-
-    securesocket = sc.SecureSocket(socket,key) ### Here then I could give onion socket!
-    return securesocket
-end
-
-accept(socket::LibuvStream,sc::SocketConfig) = _accept(socket,sc)
-accept(socket::IO,sc::SocketConfig) = _accept(socket,sc)
-
 ####### BallotBox #######
 
-function mixer(secureserversocket::IO,ballotmember::SocketConfig)
+function mixer(secureserversocket::IO,ballotmember::Layer)
     N = read(secureserversocket,UInt8)
     M = read(secureserversocket,UInt8) 
     
@@ -107,7 +64,7 @@ function mixer(secureserversocket::IO,ballotmember::SocketConfig)
 
     susersockets = []
     for i in 1:N
-        securesocket = accept(mux.lines[i],ballotmember)
+        securesocket = secure(mux.lines[i],ballotmember)
         push!(susersockets,securesocket)
     end
     
@@ -136,11 +93,11 @@ struct Mixer
     daemon
 end
 
-function Mixer(port,ballotgate::SocketConfig,ballotmember::SocketConfig)
+function Mixer(port,ballotgate::Layer,ballotmember::Layer)
     server = listen(port)
 
     daemon = @async while true
-        gksecuresocket = accept(accept(server),ballotgate)
+        gksecuresocket = secure(accept(server),ballotgate)
 
         @async while isopen(gksecuresocket)
             mixer(gksecuresocket,ballotmember)
@@ -159,7 +116,7 @@ end
 
 ######## GateKeeper ###########
 
-function gatekeeper(server,secureroutersocket::IO,N::UInt8,M::UInt8,gatemember::SocketConfig,metadata::Vector{UInt8})
+function gatekeeper(server,secureroutersocket::IO,N::UInt8,M::UInt8,gatemember::Layer,metadata::Vector{UInt8})
     
     #serialize(secureroutersocket,N)
     write(secureroutersocket,UInt8[N,M])
@@ -167,7 +124,7 @@ function gatekeeper(server,secureroutersocket::IO,N::UInt8,M::UInt8,gatemember::
     usersockets = IO[]
 
     while length(usersockets)<N
-        secureusersocket = accept(accept(server),gatemember)
+        secureusersocket = secure(accept(server),gatemember)
         push!(usersockets,secureusersocket)
     end
 
@@ -211,10 +168,10 @@ end
 
 ### Need to give the braid type for constructing the Braid!
 ### Also would accept a function which would add necesary message to the ballot
-function GateKeeper(port,ballotport,N::UInt8,M::UInt8,gateballot::SocketConfig,gatemember::SocketConfig,metadata::Function)
+function GateKeeper(port,ballotport,N::UInt8,M::UInt8,gateballot::Layer,gatemember::Layer,metadata::Function)
     ### verify needs to use config.id to check that the correct ballotbox had been connected. 
 
-    secureballotbox = connect(connect(ballotport),gateballot)
+    secureballotbox = secure(connect(ballotport),gateballot)
 
     server = listen(port)
 
@@ -242,9 +199,9 @@ end
 
 ### I need to pass the braid type here
 ### The msg should be with defined length
-function vote(port,membergate::SocketConfig,memberballot::SocketConfig,msg::Vector{UInt8},sign::Function)
-    securesocket = connect(connect(port),membergate)
-    sroutersocket = connect(securesocket,memberballot)
+function vote(port,membergate::Layer,memberballot::Layer,msg::Vector{UInt8},sign::Function)
+    securesocket = secure(connect(port),membergate)
+    sroutersocket = secure(securesocket,memberballot)
     
     @assert read(sroutersocket,UInt8)==OPEN
     stack(sroutersocket,msg)
@@ -263,6 +220,6 @@ function vote(port,membergate::SocketConfig,memberballot::SocketConfig,msg::Vect
     stack(securesocket,s) 
 end
 
-export SocketConfig, Mixer, GateKeeper, stop, vote
+export Layer, Mixer, GateKeeper, stop, vote
 
 end 

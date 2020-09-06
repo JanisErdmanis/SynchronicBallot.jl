@@ -18,6 +18,8 @@ DHsym(key) =  DH(value->wrapsigned(value,key),unwrapsigned,G,chash,() -> rngint(
 mixermember = SocketConfig(nothing,DHasym(mixerkey),(socket,key)->SecureSocket(socket,key))
 membermixer = SocketConfig(ballotid,DHasym(),(socket,key)->SecureSocket(socket,key))
 
+
+
 userids = Set()
 
 user1key = Signer(G)

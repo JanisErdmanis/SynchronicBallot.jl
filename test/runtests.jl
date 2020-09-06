@@ -71,6 +71,30 @@ function DSASignature{BigInt}(bytes::Vector{UInt8})
 end
 
 
+struct SocketConfig <: Layer
+    id ### Theese list approved ids
+    dh::DH
+    SecureSocket
+end
+
+function _secure(socket::IO, sc::SocketConfig)
+    key,id = diffiehellman(socket,sc.dh)
+    @assert id in sc.id "$id not in $(sc.id)"
+
+    sroutersocket = sc.SecureSocket(socket,key)
+    return sroutersocket
+end
+import Base.LibuvStream
+
+SynchronicBallot.secure(socket::LibuvStream,sc::SocketConfig) = _secure(socket,sc)
+SynchronicBallot.secure(socket::IO,sc::SocketConfig) = _secure(socket,sc)
+
+
+import Base.in
+in(x::Nothing,y::Nothing) = true
+
+
+
 # The essentials of the protocol
 include("core.jl")
 
