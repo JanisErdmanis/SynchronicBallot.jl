@@ -1,10 +1,29 @@
 module SynchronicBallot
 
-abstract type Layer end
-function secure end
+using PeaceCypher: CypherSuite, Signer, Secret, Layer, secure, id
+
+#abstract type Layer end
+#function secure end
 
 using Multiplexers
 using Sockets
+
+struct Regulation
+    N::UInt8
+    M::UInt8
+    metadata::Vector{UInt8}
+end
+
+struct Ballot
+    metadata::Vector{UInt8}
+    votes::Array{UInt8,2}
+end
+
+abstract type Officer end
+
+function regulation end
+function audit! end
+
 
 ##### For Debugging #####
 
@@ -56,7 +75,20 @@ end
 
 ####### BallotBox #######
 
-function mixer(secureserversocket::IO,ballotmember::Layer)
+struct Mix
+    port
+    id
+    crypto::CypherSuite
+end
+
+function Sockets.connect(mix::Mix)
+    layer = Layer(mix.crypto, mix.id)
+    mixsocket = connect(mix.port)
+    mixsl = secure(mixsocket, layer)
+    return mixsl
+end
+
+function serve(secureserversocket::IO, ballotmember::Layer)
     N = read(secureserversocket,UInt8)
     M = read(secureserversocket,UInt8) 
     
@@ -85,55 +117,42 @@ function mixer(secureserversocket::IO,ballotmember::Layer)
     ### I need to sort whoole collumns
     #sort!(shapedmessages, dims=2) # We may need to look into it
     sortedmessages = sortslices(shapedmessages, dims=2)
-    stack(secureserversocket,reshape(sortedmessages,:))
+    stack(secureserversocket, reshape(sortedmessages,:))
 end
 
-struct Mixer
-    server
-    daemon
-end
 
-function Mixer(port,ballotgate::Layer,ballotmember::Layer)
-    server = listen(port)
+function serve(mix::Mix, signer::Union{Signer, Secret})
+    @assert mix.id == id(signer) 
+    layer = Layer(mix.crypto, signer)
 
-    daemon = @async while true
-        gksecuresocket = secure(accept(server),ballotgate)
+    server = listen(mix.port)
 
-        @async while isopen(gksecuresocket)
-            mixer(gksecuresocket,ballotmember)
+    while true
+        client = secure(accept(server), layer)
+        
+        @async while isopen(client)
+            serve(client, layer)
         end
     end
-
-    return Mixer(server,daemon)
 end
 
-function stop(ballotbox::Mixer)
-    server = ballotbox.server
-    Sockets.close(server)
-    @async Base.throwto(ballotbox.daemon,InterruptException())
-    return nothing
+
+struct GateKeeper
+    port
+    id
+    crypto::CypherSuite
+    mix::Mix
 end
 
-######## GateKeeper ###########
+function run(b::Regulation, usersockets::Vector{IO}, secureroutersocket::IO)
+    N, M, metadata = b.N, b.M, b.metadata
 
-function gatekeeper(server,secureroutersocket::IO,N::UInt8,M::UInt8,gatemember::Layer,metadata::Vector{UInt8})
-    
-    #serialize(secureroutersocket,N)
     write(secureroutersocket,UInt8[N,M])
     
-    usersockets = IO[]
-
-    while length(usersockets)<N
-        secureusersocket = secure(accept(server),gatemember)
-        push!(usersockets,secureusersocket)
-    end
-
     mux = Multiplexer(secureroutersocket,usersockets)
     wait(mux)
     
     messages = unstack(secureroutersocket) ### A single list of bytes.
-
-    #rawballot = messages # Currently no need to add additional abstraction
 
     ballot = reshape(messages,(M,N)) 
 
@@ -149,57 +168,50 @@ function gatekeeper(server,secureroutersocket::IO,N::UInt8,M::UInt8,gatemember::
     rawballot = take!(io)
 
     for i in 1:N
-        write(usersockets[i],rawballot)
+        write(usersockets[i], rawballot)
         s = unstack(usersockets[i]) ### One should verify also the signatures
-        push!(signatures,s)
+        push!(signatures, s)
     end
 
     ### User then can use metadata to form a Braid one needs
-    return (ballot,signatures)
+    return Ballot(metadata, ballot), signatures
 end
 
-struct GateKeeper
-    N::Integer
-    server # TCPServer
-    mixer # Socket
-    daemon # a Task
-    ballots::Channel 
-end
 
-### Need to give the braid type for constructing the Braid!
-### Also would accept a function which would add necesary message to the ballot
-function GateKeeper(port,ballotport,N::UInt8,M::UInt8,gateballot::Layer,gatemember::Layer,metadata::Function)
-    ### verify needs to use config.id to check that the correct ballotbox had been connected. 
+function serve!(gk::GateKeeper, ar::Officer, signer::Union{Signer, Secret})
 
-    secureballotbox = secure(connect(ballotport),gateballot)
+    @assert id(signer) == gk.id
 
-    server = listen(port)
-
-    userset = Set()
-    ballotch = Channel(10)
-
-    daemon = @async while true
-        m = metadata()
-        ballot = gatekeeper(server,secureballotbox,N,M,gatemember,m)
-        # one also adds ballotid from gateballot.id
-        put!(ballotch,(m,ballot...))
-    end
+    mix = connect(gk.mix)
+    server = listen(gk.port)
+    gatemember = Layer(gk.crypto, signer, ar)
     
-    GateKeeper(N,server,secureballotbox,daemon,ballotch)
+
+    while true
+
+        config = regulation(ar)
+
+        usersockets = IO[]
+
+        while length(usersockets) < config.N
+            connection = accept(server)
+            secureusersocket = secure(connection, gatemember)
+            push!(usersockets, secureusersocket)
+            #lock(ar, id(secureusersocket))
+        end
+
+        ### Also a partial set of signatures could be returned
+        ### In that way it would be possible to figure out who did not sign the ballot
+        ### and whether that happens to be a consistent behaviour which can be qualified as DDOS attack
+        ballot, signatures = run(config, usersockets, mix)
+
+        ### shall it actually error?
+        audit!(ar, ballot, signatures)
+    end
 end
 
-function stop(gatekeeper::GateKeeper)
-    server = gatekeeper.server
-    close(server)
-    @async Base.throwto(gatekeeper.daemon,InterruptException())
-    return nothing
-end
 
-### In the user side one might also want something like anonymousconnect (or onionconnect, OnionSocket). Somehow we need to make it play nicelly with SecureIO.
-
-### I need to pass the braid type here
-### The msg should be with defined length
-function vote(port,membergate::Layer,memberballot::Layer,msg::Vector{UInt8},sign::Function)
+function vote(port, membergate::Layer, memberballot::Layer, msg::Vector{UInt8}, sign::Function)
     securesocket = secure(connect(port),membergate)
     sroutersocket = secure(securesocket,memberballot)
     
@@ -220,6 +232,13 @@ function vote(port,membergate::Layer,memberballot::Layer,msg::Vector{UInt8},sign
     stack(securesocket,s) 
 end
 
-export Layer, Mixer, GateKeeper, stop, vote
+function vote(msg::Vector{UInt8}, gk::GateKeeper, s::Union{Signer, Secret}, sign::Function)
+    membergate = Layer(gk.crypto, s, gk.id)
+    memberballot = Layer(gk.mix.crypto, gk.mix.id)
+    return vote(gk.port, membergate, memberballot, msg, sign)
+end
+
+
+export Mix, GateKeeper, Officer, Ballot, Regulation, vote
 
 end 
