@@ -112,9 +112,9 @@ version = "0.2.4"
 
 [[PeaceCypher]]
 deps = ["CryptoGroups", "CryptoSignatures", "DiffieHellman", "Nettle", "Pkg", "Random", "SecureIO", "Sockets"]
-git-tree-sha1 = "c0b33dcb6190d4c8ac5b42efc8101a796e5ca70a"
+git-tree-sha1 = "a337baaf59008c93f92077fbc4aa9e2fa8d37837"
 uuid = "7743456c-e0c5-4477-a2b6-196c240b0368"
-version = "0.3.3"
+version = "0.3.5"
 
 [[Pkg]]
 deps = ["Dates", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "UUIDs"]

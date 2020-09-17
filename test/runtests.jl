@@ -58,9 +58,9 @@ push!(bo.members, id(user3key))
 
 @sync begin
 
-    @async vote(Vector{UInt8}("msg1"), gk, user1key, (m,b) -> binary(sign((m,b), user1key)))
-    @async vote(Vector{UInt8}("msg2"), gk, user2key, (m,b) -> binary(sign((m,b), user2key)))
-    @async vote(Vector{UInt8}("msg3"), gk, user3key, (m,b) -> binary(sign((m,b), user3key)))
+    @async vote(Vector{UInt8}("msg1"), gk, user1key, b -> binary(sign(b, user1key)))
+    @async vote(Vector{UInt8}("msg2"), gk, user2key, b -> binary(sign(b, user2key)))
+    @async vote(Vector{UInt8}("msg3"), gk, user3key, b -> binary(sign(b, user3key)))
 
 end
 

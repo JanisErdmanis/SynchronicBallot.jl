@@ -228,7 +228,7 @@ function vote(port, membergate::Layer, memberballot::Layer, msg::Vector{UInt8}, 
     
     ballot = reshape(rawballot,(M,N)) 
 
-    s = sign(metadata,ballot)
+    s = sign(Ballot(metadata,ballot))
     stack(securesocket,s) 
 end
 
