@@ -6,4 +6,6 @@
 [![Build Status](https://travis-ci.com/PeaceFounder/SynchronicBallot.jl.svg?branch=master)](https://travis-ci.com/PeaceFounder/SynchronicBallot.jl)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3562951.svg)](https://doi.org/10.5281/zenodo.3562951)
 
+**NOTE: currently no further development expected as PeaceFounder will primarly use noninteractive zero knowledge proof of shuffle elminiating the need for synchronization**
+
 A protocol for anonymous and unique registration of messages. 
